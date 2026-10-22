@@ -1,0 +1,451 @@
+{
+  "job": "attribution",
+  "no_tuning": "No constant is chosen on a test portion or on the evaluation set. This job introduces no threshold search, fitted parameter, training selection, or evaluation sweep; all constants are inherited unchanged. The inherited SERF-v3 selection design was motivated by earlier SERF-v1 test analysis, as disclosed in protocol_serf_v3.json.",
+  "sources": [
+    "configs/public_e2e_v1/protocol_v3.json",
+    "configs/formal_gold_v1_protocol.json",
+    "configs/serf_v3/protocol_serf_v3.json",
+    "configs/public_paired_v1/protocol_paired_v1.json"
+  ],
+  "source_sha256": {
+    "run_v3_plan": "6d1ec69eec5d1347e1eb0ac97916e0863476cb8d3ec88435e225f3167c211890",
+    "e2e_slot_adapters": "e8356690207044d40ef95292da5894d76848a3cf494f0339c7d23b7ae727362c",
+    "e2e_v3_adapter": "9b252030db08b223186fb1b3a88eec87e7aac1ee9f19fcfe928b0f56531d6921",
+    "run_formal_gold_v1": "7cf78be0360ab12ab4e4f48a5cf8137f64ce3a9adae051f9d3b3ab09ebe4e1fe",
+    "gold_v3": "f30f5f65db1d37f7cdc90a38d3ed9f2c385703624c22f675f5f467494c4f8eec",
+    "e2e_stats": "a90fc67f14a0cf8a94b897b4362e703565ad6898b8a487c5e2a078c5365f0a44",
+    "fedresolve_core": "b3db8230c126e54a12127c525a143f02f77f2ea2a3bd1192aa42eb9f6201496c",
+    "e2e_retrieval": "82444e5c3ef9f0eb52855105e1830c227b454348df5ed7d88b88ecaaa2442cf3",
+    "e2e_records": "a549282355a0b30cb22258627b45f04128fe041f7ce34399f39e5ad4ff8c2488"
+  },
+  "input_protocol_sha256": {
+    "PROTOCOL_v3.json": "b98f47ccf27bad1d1d12b6cbfc1b5d0d07d9f464d1b8796723444132f17234e1",
+    "formal_gold_v1_protocol.json": "dd22af39e288cf9e686e4c186e5828ed3e18b82ce737acb7da776146382e29f6",
+    "protocol_serf_v3.json": "7cb9106e81e869e1b232d53a3d443c9b08363dc163b71fa84cb4fe0e6f4b3321",
+    "protocol_paired_v1.json": "8e173613981a481881dcd053147ba3744c36a10558272f81d83e8827041bb100"
+  },
+  "evaluation_protocol_sha256": "dd22af39e288cf9e686e4c186e5828ed3e18b82ce737acb7da776146382e29f6",
+  "constants": {
+    "global_temperature": 0.07,
+    "full_query_weight": 0.25,
+    "claim_query_weight": 0.75,
+    "minimum_marginal_gain": 0.05,
+    "missingness_raw_margin": 0.02,
+    "missingness_probability_ratio": 1.15
+  },
+  "certificate_bytes_per_call": 512,
+  "retriever": {
+    "blend_weight": {
+      "finrag": 0.25,
+      "visdom": 0.5
+    },
+    "dense_weight": {
+      "finrag": 0.5,
+      "visdom": 0.0
+    },
+    "score": "w * cosine(visual) + (1 - w) * [d * cosine(dense) + (1 - d) * cosine(tfidf)]"
+  },
+  "evidence": {
+    "page_budget_equals_call_budget": true,
+    "page_text_char_limit": 1800,
+    "pages_per_client": 1,
+    "ranked_candidate_depth": 10,
+    "rule": "a called client returns its single best-scoring page; the returned pages are ranked globally and truncated to the page budget, which equals the call budget"
+  },
+  "seeds": {
+    "public": 20260728,
+    "evaluation": 20260730,
+    "public_bootstrap": 20260728,
+    "evaluation_bootstrap": 20260730,
+    "generator_unused": 20260805,
+    "federation_rule": "public seed + client count + (0 for finrag, 50000 for visdom)",
+    "split_rule": "federation seed + 101"
+  },
+  "methods": [
+    "RAGRoute",
+    "UniversalRAG",
+    "S2G-RAG",
+    "FedResolve"
+  ],
+  "variants": {
+    "base": "Imported adapter unchanged, including its evidence score and abstention.",
+    "+sel": "Base calls, pooled SERF-v3 coverage selection over their pages.",
+    "+stop": "External base order truncated at the first subsequent client with share below 0.05; FedResolve unchanged.",
+    "+both": "Stopped calls followed by pooled SERF-v3 coverage selection.",
+    "topB": "FedResolve only: base calls and availability, budget best pages by evidence score; ties lowest page index."
+  },
+  "stop_rule": {
+    "first_call": "Always call the first eligible external-router client.",
+    "denominator": "All online clients with finite score in that round, including previously called clients. Only client choice excludes called clients. No renormalization over only uncalled clients.",
+    "RAGRoute": "Full-query client maxima.",
+    "UniversalRAG": "Maximum over sub-questions of client maxima.",
+    "S2G-RAG": "Client maxima for the least-covered sub-question in the imported gap_steps trace; called prefix is unchanged until stop.",
+    "FedResolve": "Preserve fixed residual expected claim mass stop exactly. This is not a scalar softmax-share stop."
+  },
+  "selection": "Imported e2e_v3_adapter selection for public data; imported v3_select from gold_v3.py for evaluation. First highest evidence score, then highest blended score for least-covered sub-question. Float64 blend, fixed tie rules, evidence-score presentation order.",
+  "public": {
+    "datasets": [
+      "finrag",
+      "visdom"
+    ],
+    "client_scales": [
+      8,
+      16
+    ],
+    "tracks": [
+      "seen_query",
+      "unseen_family"
+    ],
+    "split": "test",
+    "budgets": [
+      1,
+      2,
+      3
+    ],
+    "scenarios": [
+      "full"
+    ],
+    "query_order": "Existing split order; first N per setting under --limit.",
+    "metrics": [
+      "evidence_recall",
+      "complete_evidence",
+      "abstain",
+      "client_calls",
+      "selected_pages",
+      "evidence_precision",
+      "evidence_f1",
+      "serialized_request_bytes",
+      "serialized_response_bytes",
+      "certificate_bytes",
+      "protocol_bytes"
+    ],
+    "evidence_unit": {
+      "finrag": "page",
+      "visdom": "document"
+    },
+    "metric_rule": "Same set PRF and page-to-document conversion as run_e2e.py. Complete evidence is recall equal to one. Calls count called clients. Routing abstention clears delivered public evidence."
+  },
+  "evaluation": {
+    "tasks": 45,
+    "clients": 8,
+    "budgets": [
+      2,
+      3
+    ],
+    "scenarios": [
+      "full"
+    ],
+    "inputs": "Evaluation runner task and annotation paths and normalized cached embedding scores; input and cache hashes required.",
+    "label_boundary": "All decisions are materialized before annotation content is loaded. Annotation fields are consumed only by fixed item_metrics.",
+    "metrics": [
+      "strict_success",
+      "evidence_recall",
+      "evidence_precision",
+      "citation_f1",
+      "client_calls",
+      "bytes",
+      "complete_evidence",
+      "complete_client_set",
+      "abstain",
+      "selected_pages"
+    ],
+    "cost": "Evaluation item_metrics: certificate charge plus selected image file bytes. Serialized request/response bytes are null because the fixed runner does not define them.",
+    "topB": "Also reported for evaluation to make the SERF-only selection control available on both datasets."
+  },
+  "aggregation": {
+    "per_setting": "Arithmetic query means; identical UIDs required for every panel cell.",
+    "four_settings": "Unweighted arithmetic mean of four setting means, separately for each public dataset, method, variant, budget.",
+    "comparisons": "FedResolve +sel minus every other method/variant at the same budget; include identical controls and topB.",
+    "completeness": "Reject duplicates, missing cells, incomplete UID pairing, missing settings, manifest mismatches.",
+    "smoke": "Descriptive subset only; never a full recorded-cell reproduction claim.",
+    "limit": "Optional --limit N retains the first N query IDs in existing file order per dataset and setting, after validating the source panel. A smaller existing smoke subset cannot be expanded."
+  },
+  "statistics": {
+    "resamples": 10000,
+    "interval": "Two-sided percentile 95% interval from imported paired_bootstrap.",
+    "seed": "Public seed for every public comparison; evaluation seed for every evaluation comparison; stable sorted UID order.",
+    "public_metrics": [
+      "evidence_recall",
+      "client_calls"
+    ],
+    "evaluation_bootstrap": [
+      "evidence_recall"
+    ],
+    "evaluation_binary": "Exact binomial McNemar from e2e_stats.mcnemar on strict_success.",
+    "interval_counts": "Per dataset, budget, control, metric: number of four settings excluding zero; report positive and negative separately.",
+    "multiplicity": "Descriptive unadjusted intervals and p-values; no family-wise claim.",
+    "identical_variants": "Report zero differences rather than dropping equivalent controls."
+  },
+  "compute": {
+    "generation": false,
+    "scoring": "Once per query per setting; all variants use identical views."
+  },
+  "recorded_serf_cells": [
+    {
+      "dataset": "finrag",
+      "config": "c16_seen_query",
+      "budget": 1,
+      "n": 247,
+      "evidence_recall": 0.3815789473684211,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 2070.3765182186235,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c16_seen_query",
+      "budget": 2,
+      "n": 247,
+      "evidence_recall": 0.5151821862348178,
+      "client_calls": 1.7732793522267207,
+      "selected_pages": 2.0,
+      "protocol_bytes": 4102.271255060728,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c16_seen_query",
+      "budget": 3,
+      "n": 247,
+      "evidence_recall": 0.5536437246963563,
+      "client_calls": 2.360323886639676,
+      "selected_pages": 3.0,
+      "protocol_bytes": 6099.672064777328,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c16_unseen_family",
+      "budget": 1,
+      "n": 258,
+      "evidence_recall": 0.3488372093023256,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1892.1937984496124,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c16_unseen_family",
+      "budget": 2,
+      "n": 258,
+      "evidence_recall": 0.4903100775193798,
+      "client_calls": 1.7248062015503876,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3775.3217054263564,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c16_unseen_family",
+      "budget": 3,
+      "n": 258,
+      "evidence_recall": 0.5406976744186046,
+      "client_calls": 2.2868217054263567,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5618.523255813953,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_seen_query",
+      "budget": 1,
+      "n": 264,
+      "evidence_recall": 0.40009469696969696,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 2071.1780303030305,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_seen_query",
+      "budget": 2,
+      "n": 264,
+      "evidence_recall": 0.4910037878787879,
+      "client_calls": 1.8068181818181819,
+      "selected_pages": 2.0,
+      "protocol_bytes": 4245.143939393939,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_seen_query",
+      "budget": 3,
+      "n": 264,
+      "evidence_recall": 0.5440340909090909,
+      "client_calls": 2.496212121212121,
+      "selected_pages": 3.0,
+      "protocol_bytes": 6402.772727272727,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_unseen_family",
+      "budget": 1,
+      "n": 296,
+      "evidence_recall": 0.31517454954954954,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1949.0506756756756,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_unseen_family",
+      "budget": 2,
+      "n": 296,
+      "evidence_recall": 0.4072353603603604,
+      "client_calls": 1.8344594594594594,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3896.3412162162163,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "finrag",
+      "config": "c8_unseen_family",
+      "budget": 3,
+      "n": 296,
+      "evidence_recall": 0.45267454954954955,
+      "client_calls": 2.516891891891892,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5842.27027027027,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_seen_query",
+      "budget": 1,
+      "n": 392,
+      "evidence_recall": 0.7066326530612245,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1849.5561224489795,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_seen_query",
+      "budget": 2,
+      "n": 392,
+      "evidence_recall": 0.7602040816326531,
+      "client_calls": 1.905612244897959,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3688.0280612244896,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_seen_query",
+      "budget": 3,
+      "n": 392,
+      "evidence_recall": 0.7882653061224489,
+      "client_calls": 2.75,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5454.938775510204,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_unseen_family",
+      "budget": 1,
+      "n": 405,
+      "evidence_recall": 0.7037037037037037,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1921.3901234567902,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_unseen_family",
+      "budget": 2,
+      "n": 405,
+      "evidence_recall": 0.7604938271604939,
+      "client_calls": 1.9209876543209876,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3814.041975308642,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c16_unseen_family",
+      "budget": 3,
+      "n": 405,
+      "evidence_recall": 0.7777777777777778,
+      "client_calls": 2.7777777777777777,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5653.246913580247,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_seen_query",
+      "budget": 1,
+      "n": 421,
+      "evidence_recall": 0.7030878859857482,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1861.2042755344419,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_seen_query",
+      "budget": 2,
+      "n": 421,
+      "evidence_recall": 0.7505938242280285,
+      "client_calls": 1.9548693586698338,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3723.21377672209,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_seen_query",
+      "budget": 3,
+      "n": 421,
+      "evidence_recall": 0.7767220902612827,
+      "client_calls": 2.8812351543942993,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5586.361045130641,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_unseen_family",
+      "budget": 1,
+      "n": 405,
+      "evidence_recall": 0.6814814814814815,
+      "client_calls": 1.0,
+      "selected_pages": 1.0,
+      "protocol_bytes": 1810.4074074074074,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_unseen_family",
+      "budget": 2,
+      "n": 405,
+      "evidence_recall": 0.7283950617283951,
+      "client_calls": 1.962962962962963,
+      "selected_pages": 2.0,
+      "protocol_bytes": 3656.4814814814813,
+      "abstain_routing": 0.0
+    },
+    {
+      "dataset": "visdom",
+      "config": "c8_unseen_family",
+      "budget": 3,
+      "n": 405,
+      "evidence_recall": 0.7555555555555555,
+      "client_calls": 2.908641975308642,
+      "selected_pages": 3.0,
+      "protocol_bytes": 5535.582716049383,
+      "abstain_routing": 0.0
+    }
+  ],
+  "reproduction": "Full run must reproduce all 24 full-scenario recorded SERF cells on recall, calls, pages, protocol bytes and routing abstention, with tolerance 1e-12. This does not check answer or generator metrics.",
+  "evaluation_cache_source": "artifacts/formal_gold_v1/formal_results.json: cache_manifest_sha256; verify each artifact against the cache manifest"
+}

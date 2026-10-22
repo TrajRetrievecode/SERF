@@ -1,0 +1,18 @@
+{
+  "name": "gold_enumeration_v1",
+  "purpose": "The 40 recorded pairs of availability scenarios take one specific client offline per question. This run takes offline, one at a time, every client that holds a candidate page of the question, so the availability test is also measured when the other necessary client, or any other unnecessary client, is offline.",
+  "frozen_inputs": {
+    "code": "scripts/run_formal_gold_v1.py (score_views, ADAPTERS, oracle_client_adapter)",
+    "protocol": "configs/formal_gold_v1_protocol.json",
+    "gold": "data/annotation/gold_v1/fedfinrag_resolve_gold_v1.json (sha256 checked against the protocol)",
+    "tasks": "data/annotation/gold_v1/tasks_gold_v1.json (sha256 checked against the protocol)",
+    "embeddings": "data/cache/FedFinRAG-Resolve-Gold-v1/qwen3_vl_embedding_2b; manifest sha256 equals formal_results.json cache_manifest_sha256"
+  },
+  "scenarios": "For each of the 45 questions and each client that holds at least one candidate page of that question, one scenario with that client offline and the other seven online. Budget 2.",
+  "labels": "Mechanical, from the annotations: a scenario is answerable iff some minimum sufficient client set lies inside the online set. No new human labels.",
+  "methods": "Local, All, RAGRoute, UniversalRAG, CoRe-MMRAG, S2G-RAG, FedResolve (SERF), Centralized, Oracle client set; plus every external method combined with the availability test of SERF (abstain if the method abstains or SERF's gate flags a sub-question), computed from the same run.",
+  "metrics": "answerable success = called a complete minimum sufficient client set and did not abstain; unanswerable abstention accuracy; balanced missingness accuracy = mean of the two; reported over all enumerated scenarios, over the recorded 80, and over the new ones; unanswerable scenarios split by whether the offline necessary client is the one in the recorded scenario of that question.",
+  "reproduction_check": "Before enumeration, the 80 recorded scenarios are re-run and every method's (abstain, complete_client_set) decision must equal formal_results.json participation_main_budget decisions.",
+  "statistics": "Counts with exact Clopper-Pearson 95% intervals for SERF's rates.",
+  "nothing_tuned": "No threshold, weight, method or code path is changed or selected; the run only adds availability patterns."
+}

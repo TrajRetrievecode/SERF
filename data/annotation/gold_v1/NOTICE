@@ -1,0 +1,12 @@
+FinRAGBench-V candidate page renderings
+
+Source: https://github.com/zhaosuifeng/FinRAGBench-V
+Upstream revision: 4de6374bb97aaca1ceff5e0463934860778ae557
+Upstream license: Apache License, Version 2.0
+License source: https://github.com/zhaosuifeng/FinRAGBench-V/blob/4de6374bb97aaca1ceff5e0463934860778ae557/LICENSE
+
+The upstream repository at this revision contains no NOTICE file and no
+completed copyright-owner notice in LICENSE. The upstream license text,
+including its copyright-notice template, is reproduced in LICENSE.md.
+Copyright and other notices in the rendered pages are retained.
+These 80 PNG files render selected dataset pages for the SERF evaluation set.

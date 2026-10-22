@@ -1,0 +1,101 @@
+{
+  "name": "serf_v3_dev_confirmation",
+  "definitions": {
+    "outcome-bearing run": "a run that computed, for a query or for a composite question built from the query's relevance labels, a page-level evidence outcome of an evidence-selection method (which pages a method cites and whether they are relevant) or an answer outcome. Not outcome-bearing: runs that computed only client-level routing or missingness metrics, dataset-wide retrieval-layer and reachability studies over every query, annotation without evaluation, and planning without scoring. These are disclosed below, not excluded.",
+    "cited pages": "the plan row's evidence_page_uids: the evidence set that a method selects and passes to the generator. The generator's own citations enter no C or D entry.",
+    "family component": "confirmation queries linked through shared document families (fedresolve_core.family_key of the documents a query's relevance labels name), computed by union-find over the relevance labels."
+  },
+  "history_of_the_development_portions": [
+    "The four settings of each dataset split the same query records independently (fedresolve_core.split_records, seed = setting seed + 101, 70/12/18 train/dev/test by a hash of the uid or the family key). About half of the development queries of a setting are test queries of another setting, and those test portions were run and analysed for SERF-v1 and SERF-v3. Such queries are excluded.",
+    "The shared generator prompt and retriever were selected on records that lie in the training portion of at least one setting and in no test portion; some of these records lie in the development portion of another setting.",
+    "Confirmation queries are new queries, but on FinRAGBench-V most of them ask about documents that test queries also ask about: 207 of the 234 FinRAGBench-V confirmation queries share a document and 209 share a document family with a test query of some setting; on VisDoM 203 of 487 do. The FinRAGBench-V confirmation therefore tests new queries more than new documents. D5 reports the family-disjoint queries (25 on FinRAGBench-V, 284 on VisDoM) descriptively."
+  ],
+  "data": {
+    "plans": {
+      "finrag": {
+        "path": "artifacts/serf_v3/finrag_dev/plan.jsonl",
+        "sha256": "e3cef1b102dd98b1124ead56c12f453976d54186e1c0ef5f76d98786a657c333",
+        "dev_queries_per_setting": {
+          "c16_seen_query": 171,
+          "c16_unseen_family": 303,
+          "c8_seen_query": 180,
+          "c8_unseen_family": 166
+        }
+      },
+      "visdom": {
+        "path": "artifacts/serf_v3/visdom_dev/plan.jsonl",
+        "sha256": "6981f822a7b62880bfe52cb59c922bdfd08fbef8433ac437c9a1095f7efbb887",
+        "dev_queries_per_setting": {
+          "c16_seen_query": 270,
+          "c16_unseen_family": 290,
+          "c8_seen_query": 275,
+          "c8_unseen_family": 277
+        }
+      }
+    },
+    "confirmation_population": {
+      "definition": "per setting, the development queries of that setting that are in no test portion of any setting and for which no earlier outcome-bearing run exists, listed in the files below",
+      "finrag": {
+        "path": "configs/serf_v3_devconfirm/confirm_uids_finrag.json",
+        "sha256": "9a8d2e3e3d3c24eab3483826e28709ba9f8c8471b873f277dbbc373acbc2ece4",
+        "per_setting": {
+          "c16_seen_query": 61,
+          "c16_unseen_family": 111,
+          "c8_seen_query": 68,
+          "c8_unseen_family": 48
+        },
+        "query_setting_pairs": 288,
+        "unique_queries": 234,
+        "family_components": 87,
+        "largest_components_pairs": [
+          52,
+          34
+        ]
+      },
+      "visdom": {
+        "path": "configs/serf_v3_devconfirm/confirm_uids_visdom.json",
+        "sha256": "d229de5e07e9080046f3fea1ddbc5a0fe525d43a2954754d2a0f0dacc7a12865",
+        "per_setting": {
+          "c16_seen_query": 138,
+          "c16_unseen_family": 160,
+          "c8_seen_query": 161,
+          "c8_unseen_family": 144
+        },
+        "query_setting_pairs": 603,
+        "unique_queries": 487,
+        "family_components": 350,
+        "largest_components_pairs": [
+          22,
+          8
+        ]
+      }
+    },
+    "rows": "Rows of the registered development plan with scenario 'full' (every client online) and the given budget (page budget = call budget); methods FedResolve-v3 (SERF-v3) and FedResolve (SERF-v1), and S2G-RAG, RAGRoute, Centralized as named below. Every record has gold units; a confirmation query without gold units makes the run invalid.",
+    "scoring": "Evidence recall = relevant units among the cited pages / relevant units, with e2e_common.prf over gold units from run_e2e.gold_units and run_e2e.to_units (pages on FinRAGBench-V, documents on VisDoM), as in the SERF-v3 test run; it is also computed as an exact fraction. The gold labels and page texts are pinned by their source files in SHA256SUMS; gold_digest_<dataset>.json and pagetext_digest_<dataset>.json, written at registration, are recomputed and compared by the evidence stage (gold) and by every generation and scoring run (gold, and page texts for generation)."
+  },
+  "hypotheses": [
+    {
+      "id": "C1",
+      "role": "primary and only confirmatory claim; it alone decides",
+      "claim": "On the FinRAGBench-V confirmation population at budget 2 with every client online, SERF-v3 has higher evidence recall than SERF-v1, pooled over the four settings with every (setting, query) pair weighted equally.",
+      "statistic": "mean over all (setting, query) pairs of the per-query evidence recall of SERF-v3 minus that of SERF-v1",
+      "inference": "cluster bootstrap over family components (every pair of a drawn component enters), 10,000 resamples, numpy default_rng seed 20260805, percentile 95% interval rounded to 12 decimals",
+      "confirmed_if": "all three hold: (a) the 95% interval lies entirely above 0; (b) the per-setting mean difference, computed exactly as a rational number, is above 0 in at least 3 of the 4 settings; (c) the pooled mean difference, computed exactly, stays above 0 when the largest family component (52 pairs) is left out and, separately, when the second largest (34 pairs) is left out",
+      "why_this_design": "The confirmation population has 48 to 111 queries per setting on FinRAGBench-V, 51 queries fall in two or three settings, and the two largest family components hold 30% of the pairs. Settings are therefore not independent replications, a per-setting significance rule would have little power, and resampling queries would understate the uncertainty."
+    },
+    {
+      "id": "C2",
+      "role": "secondary; fixed sequence after C1, reported whatever the outcome",
+      "claim": "Same as C1 with S2G-RAG as the control.",
+      "confirmed_if": "the C1 rule with S2G-RAG as control is met, and C1 is confirmed"
+    }
+  ],
+  "descriptive": [
+    "D1: VisDoM confirmation population, budget 2, every client online: SERF-v3 minus SERF-v1 evidence recall with the same pooled estimate, family-component interval, per-setting exact means, and leave-out estimates, plus the four per-setting paired-bootstrap intervals and the number of them entirely below 0. No verdict; a non-significant difference is not evidence that SERF-v3 is no worse.",
+    "D2: per-setting paired bootstraps (e2e_stats.paired_bootstrap, 10,000 resamples, seed 20260805) of evidence recall and precision for SERF-v3 against SERF-v1, S2G-RAG, RAGRoute, and Centralized at budgets 1, 2, 3 on both datasets, with cited pages and distinct cited units, on the confirmation population.",
+    "D3: the D2 results on the unrestricted development portions, labelled as overlapping test portions of other settings.",
+    "D4: answer level at budget 2 on the confirmation population (and, labelled, on the unrestricted development portions): success under the evidence criterion (McNemar's exact test per setting), answer token F1 (paired bootstrap per setting), the generator decline rate (share of queries with a system abstention and no routing abstention, abstain_system minus abstain_routing in the cells), and balanced missingness accuracy under the evidence criterion for every method under the proxy and on the paired scenarios.",
+    "D5: the C1 statistic on the family-disjoint confirmation queries of each dataset (family_disjoint), and the C1 and D1 statistics with a query-level cluster bootstrap on the full confirmation population (full_population_query_cluster_interval). All D entries are unadjusted and descriptive."
+  ],
+  "decision_rule": "If C1 is confirmed, the decision rule permits presenting SERF-v3 as the paper's main method. The paper then states that its change was motivated by the test-portion analysis of SERF-v1 and confirmed, under this protocol, on FinRAGBench-V development queries on which no earlier run had computed a page-level evidence or answer outcome (earlier runs computed only client-level routing and missingness metrics and dataset-wide retrieval-layer statistics on them), most of which ask about documents that test queries also ask about; that VisDoM is reported descriptively (D1); and it keeps reporting SERF-v1 and every registered result of both versions. If C1 is not confirmed, SERF-v1 stays the main method and SERF-v3 stays a post hoc successor. C2 and D1 to D5 are reported whatever their outcome and do not change the decision."
+}

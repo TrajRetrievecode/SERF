@@ -1,0 +1,132 @@
+{
+  "schema_version": "fairness-v1-composite-1",
+  "job": "composite",
+  "no_test_selection": "No constant is chosen on a test portion or on the evaluation set. This job does not read the evaluation set.",
+  "datasets": [
+    "finrag",
+    "visdom"
+  ],
+  "client_scales": [
+    8,
+    16
+  ],
+  "tracks": [
+    "seen_query",
+    "unseen_family"
+  ],
+  "seed": 20260728,
+  "setting_seed": "seed + clients + (0 for finrag, 50000 for visdom)",
+  "split_seed": "setting_seed + 101; imported split_records",
+  "federation": "Imported build_federation on sorted union of PageIndex.doc_key_list and load_records inventory, assignment by family, exactly as run_v3_plan.",
+  "construction": {
+    "portions": [
+      "train",
+      "test"
+    ],
+    "candidates": "Cached slot span length one, nonempty gold units and documents, all relevant documents assigned to exactly one client. Missing document assignments are an error.",
+    "order": "stable_u64(uid, setting_seed), then uid",
+    "pairing": "Greedily match the first later unused candidate with identical language, a different relevant client, and disjoint sets of imported family_key values. Consume both candidates before decomposition validation; rejected pairs are not retried.",
+    "text": "q1 + ' and ' + q2 for Latin script; q1 + '以及' + q2 for Chinese. Keep q1's question mark.",
+    "validation": "Imported decompose must return exactly two texts matching the originals in order after stripping outer whitespace and trailing ASCII or full-width question marks. No other normalization for the equality test.",
+    "uid": "comp:{uid1}|{uid2}",
+    "gold": "Union of public page units for finrag or document units for visdom, retaining separate part tags.",
+    "limit": "Construct all pairs, record full counts, then retain the first N accepted composites per dataset, setting and portion for smoke runs.",
+    "counts": [
+      "candidates",
+      "attempted_pairs",
+      "kept_pairs",
+      "2*attempted_pairs/candidates",
+      "2*kept_pairs/candidates",
+      "kept_pairs/attempted_pairs",
+      "processed_composites"
+    ]
+  },
+  "retriever": {
+    "source": "configs/public_e2e_v1/protocol_v3.json",
+    "blend_weight": {
+      "finrag": 0.25,
+      "visdom": 0.5
+    },
+    "dense_weight": {
+      "finrag": 0.5,
+      "visdom": 0.0
+    },
+    "encoding": "build_slot_queries settings: CLIP float16 normalized text features, batch 256, max_length 77; bge-m3 float16 normalized CLS, batch 32, max_length 1024, finrag only; identical TF-IDF page corpus and parameters, float32 saved arrays. Full and decomposed texts encoded separately. Page indices unchanged.",
+    "checkpoint_environment": {
+      "visual": "SERF_CLIP",
+      "text_dense": "SERF_BGE"
+    }
+  },
+  "fedresolve": {
+    "global_temperature": 0.07,
+    "claim_query_weight": 0.75,
+    "full_query_weight": 0.25,
+    "minimum_marginal_gain": 0.05,
+    "missingness_raw_margin": 0.02,
+    "missingness_probability_ratio": 1.15
+  },
+  "core_mmr": {
+    "lambda_relevance": 0.7
+  },
+  "constants_source": "configs/formal_gold_v1_protocol.json; pooled selection from configs/serf_v3/protocol_serf_v3.json; encoder settings from build_slot_queries.py.",
+  "methods": [
+    "FedResolve-v3",
+    "FedResolve",
+    "RAGRoute",
+    "UniversalRAG",
+    "S2G-RAG",
+    "Centralized",
+    "All",
+    "Oracle-client"
+  ],
+  "variants": {
+    "native": "Imported adapters, unchanged. Centralized contacts are distinct owners of selected pages, as requested.",
+    "pooled_share": "RAGRoute, UniversalRAG and S2G-RAG additionally use imported SERF-v3 pooled selection and minimum share 0.05. Preserve imported client sequence, stop before a next client whose softmax share is below 0.05, temperature 0.07. Eligible denominator is every finite online client including already called clients. RAGRoute ranks full_client; UniversalRAG ranks max(slot_client); S2G-RAG ranks slot_client of its current gap slot."
+  },
+  "budgets": [
+    2,
+    3
+  ],
+  "scenarios": {
+    "full": "All online, budgets 2 and 3.",
+    "part_offline": "Second part's relevant client offline, budget 2, unanswerable.",
+    "other_offline": "One non-gold client offline, budget 2, answerable; first by stable_u64('unneeded_offline|'+composite_uid+'|'+client, protocol seed), then client, matching the paired runner's hash rule."
+  },
+  "policies": {
+    "native": "Adapter's routing abstention; cited pages empty on abstention.",
+    "availability": "Imported _critical_missing decision OR no selected pages, applied to every selection variant. For SERF this reproduces native abstention.",
+    "online_only": "Replace availability gate with min over slots of best finite online combined client score < theta, OR no selected pages. Preserve routing calls and proposed selections."
+  },
+  "threshold": {
+    "step": 0.005,
+    "grid": "-1.000 through 1.005 inclusive, integer ticks divided by 200, covering the cosine-score range and both endpoint decisions.",
+    "training": "One theta per dataset, pooled over training composites of four settings. Maximize mean 0.5*(SERF-v3 proposed complete evidence on other_offline AND online-only gate does not abstain + online-only abstention on part_offline), budget 2. Ties choose the lowest theta. Record the complete sweep and training counts before test routing. All methods share this theta.",
+    "empty_training": "Stop if the pooled training composite count is zero; report empty individual settings."
+  },
+  "metrics": {
+    "part_recall": "Number of parts with at least one gold unit among cited pages divided by two.",
+    "complete_evidence": "Both parts have a gold unit among cited pages.",
+    "evidence_recall": "Size of intersection with union of gold units divided by number of distinct gold units; deduplicate document units for visdom as public aggregate inputs do.",
+    "calls": "Number of called clients, including on abstention; Centralized uses distinct page owners; All charges every online client.",
+    "selected_pages": "Number of cited pages, zero on abstention; proposed pages recorded separately.",
+    "abstain_routing": "Policy decision; no generation.",
+    "balanced_accuracy": "Mean over paired composites of 0.5*(complete evidence and no abstention on other_offline + abstention on part_offline)."
+  },
+  "cost": {
+    "certificate_bytes_per_call": 512,
+    "page_text_char_limit": 1800,
+    "ranked_candidate_depth": 10,
+    "rule": "Same plan byte accounting as run_v3_plan, except Centralized contacts use page owners."
+  },
+  "statistics": {
+    "source": "Imported e2e_stats.paired_bootstrap and mcnemar",
+    "bootstrap_iterations": 10000,
+    "bootstrap_seed": 20260805,
+    "confidence": 0.95,
+    "comparisons": "SERF-v3 native selection minus each other method and selection variant, within the same dataset, policy, budget and scenario; part_recall, complete_evidence, calls, paired by uid per setting.",
+    "aggregation": "Per-setting query means, then unweighted mean of exactly four settings, separately by dataset, method, variant, policy, budget and scenario. Missing or empty settings produce null four-setting means, never silently fewer settings.",
+    "interval_counts": "Report number of settings with intervals excluding zero and number available, for each comparison and metric.",
+    "mcnemar": "Exact McNemar on complete evidence, pooled across four settings with (config,uid) as pair id, separately by dataset, policy, budget and scenario. Repeated source queries across settings make this pooled inference descriptive; no independence claim across settings. No multiple-comparison correction."
+  },
+  "execution": "GPU only for query encoding; honor CUDA_VISIBLE_DEVICES or choose the first device with at least 20480 MiB free. Read checkpoints from SERF_CLIP and SERF_BGE. Outputs are created exclusively under artifacts/controls/composite; existing output files cause a stop."
+}

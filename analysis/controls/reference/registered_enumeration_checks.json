@@ -1,0 +1,11 @@
+{
+  "source": "artifacts/enumeration/enumeration_summary.json",
+  "all": {
+    "FedResolve": {
+      "answerable": 86,
+      "answerable_success": 86,
+      "unanswerable": 90,
+      "unanswerable_abstain": 86
+    }
+  }
+}

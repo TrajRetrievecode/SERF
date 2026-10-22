@@ -1,0 +1,163 @@
+{
+  "budgets": [
+    1,
+    2,
+    3
+  ],
+  "claim_boundaries": {
+    "baselines": "unified-protocol adaptation, not official native reproduction",
+    "latency": "simulated federation in one process; not real-world deployment latency",
+    "missingness": "qrel-induced missingness proxy, not human-verified claim-level missingness"
+  },
+  "client_scales": [
+    8,
+    16
+  ],
+  "evidence": {
+    "page_budget_equals_call_budget": true,
+    "page_text_char_limit": 1800,
+    "pages_per_client": 1,
+    "ranked_candidate_depth": 10,
+    "rule": "a called client returns its single best-scoring page; the returned pages are ranked globally and truncated to the page budget, which equals the call budget"
+  },
+  "federation": {
+    "assignment_unit": "family",
+    "document_atomic": true,
+    "inventory": "every document present in the page corpus, so a called client also holds distractor documents",
+    "query_independent": true,
+    "status": "QUASI_NATURAL_SIMULATION_NOT_OFFICIAL_FEDERATION"
+  },
+  "generator": {
+    "abstention": "the generator may return INSUFFICIENT_EVIDENCE for any method, so every system has the same abstention channel; a method's own availability test is recorded separately",
+    "max_model_len": 8192,
+    "max_tokens": 256,
+    "model_path": "models/Qwen/Qwen2.5-7B-Instruct",
+    "seed": 20260805,
+    "shared_across_methods": true,
+    "temperature": 0.0
+  },
+  "main_budgets": [
+    2
+  ],
+  "method_levels": {
+    "All": "framework_diagnostic",
+    "Centralized": "framework_diagnostic",
+    "CoRe-MMRAG": "protocol_level_adapter",
+    "FedResolve": "repository_method",
+    "Local": "framework_diagnostic",
+    "Oracle-client": "framework_oracle",
+    "Oracle-evidence": "framework_oracle",
+    "RAGRoute": "protocol_level_adapter",
+    "S2G-RAG": "protocol_level_adapter",
+    "S2G-RAG+avail": "protocol_level_adapter",
+    "UniversalRAG": "protocol_level_adapter",
+    "FedResolve-v3": "repository_method"
+  },
+  "method_notes": {
+    "All": "Broadcast to every online client; cost is the full client count.",
+    "Centralized": "Non-federated reference: one central store holding every document, a single call, and the same page budget.",
+    "CoRe-MMRAG": "CoRe-MMRAG calls every online client and selects pages by maximal marginal relevance over the evidence score and the image similarity to the pages already selected, among the 64 pages with the highest evidence score.",
+    "FedResolve": "FedResolve is the one-page variant: sub-question routing with residual coverage, early stop and the availability test, one page per called client.",
+    "Local": "Deterministic origin client; query-independent and not selected from qrels.",
+    "Oracle-client": "Gold client set induced by the official qrels under the documented simulated document federation.",
+    "Oracle-evidence": "Official relevant pages/documents handed directly to the generator; an evidence upper bound, not a retrieval method.",
+    "RAGRoute": "RAGRoute ranks online clients by the best similarity of their pages to the whole query and calls the top budget.",
+    "S2G-RAG": "S2G-RAG calls in each round the best-scoring uncalled online client for the least covered sub-question, without the availability test.",
+    "S2G-RAG+avail": "S2G-RAG+avail uses the same adaptation with the availability test of the protocol's fixed margin and ratio.",
+    "UniversalRAG": "Uses the shared router ranking under a modality-aware protocol cap; official router checkpoints are unavailable, so this is not a native reproduction.",
+    "FedResolve-v3": "SERF-v3: SERF-v1 routing and availability test unchanged; evidence selected by coverage over the pages of the called clients."
+  },
+  "methods": [
+    "All",
+    "Centralized",
+    "RAGRoute",
+    "S2G-RAG",
+    "S2G-RAG+avail",
+    "FedResolve",
+    "FedResolve-v3",
+    "Oracle-client"
+  ],
+  "retriever": {
+    "blend_weight": {
+      "finrag": 0.25,
+      "visdom": 0.5
+    },
+    "blend_weight_selection": {
+      "finrag": {
+        "blend_weight": 0.25,
+        "delivered_hit_by_federation": {
+          "16c_seen_query": 0.4075,
+          "16c_unseen_family": 0.4075,
+          "8c_seen_query": 0.4025,
+          "8c_unseen_family": 0.4025
+        },
+        "delivered_hit_mean": 0.40499999999999997,
+        "dense_weight": 0.5,
+        "records": 400,
+        "whole_corpus_recall@5": 0.5962579365079365
+      },
+      "visdom": {
+        "blend_weight": 0.5,
+        "delivered_hit_by_federation": {
+          "16c_seen_query": 0.8875,
+          "16c_unseen_family": 0.8875,
+          "8c_seen_query": 0.85,
+          "8c_unseen_family": 0.85
+        },
+        "delivered_hit_mean": 0.8687499999999999,
+        "dense_weight": 0.0,
+        "records": 400,
+        "whole_corpus_recall@5": 0.8775
+      }
+    },
+    "decision_record": {
+      "considered_and_rejected": "Qwen3-VL-Embedding-2B page images",
+      "fairness": "The retriever is identical for every method, so this choice cannot advantage or disadvantage any system. It does mean the public end-to-end track does not use the Qwen3-VL page encoder that the evaluation set used, and results are therefore not comparable page-for-page with the evaluation set.",
+      "selected": "CLIP ViT-B/32 page image embedding blended with TF-IDF page text"
+    },
+    "dense_weight": {
+      "finrag": 0.5,
+      "visdom": 0.0
+    },
+    "query_independent": true,
+    "score": "w * cosine(visual) + (1 - w) * [d * cosine(dense) + (1 - d) * cosine(tfidf)]",
+    "shared_across_methods": true,
+    "text_dense_channel": "BAAI/bge-m3 CLS embedding of extracted page text, float16, max_length 1024, first 4000 characters of the page",
+    "text_dense_model_path": "models/BAAI/bge-m3",
+    "text_sparse_channel": "TF-IDF over extracted page text, fedresolve_core tokenizer",
+    "visual_model_path": "models/openai/clip-vit-base-patch32"
+  },
+  "scenarios": [
+    "full",
+    "qrel_missing",
+    "unneeded_offline"
+  ],
+  "schema_version": "public-e2e-protocol-v1",
+  "scoring": {
+    "answer_correct_token_f1": 0.5,
+    "notes": "answerable success is reported under an evidence criterion (official relevant evidence delivered and not abstained) and under an answer criterion (token F1 at or above the threshold and not abstained); both appear in the missingness table",
+    "primary_missingness_criterion": "evidence"
+  },
+  "seed": 20260728,
+  "tracks": [
+    "seen_query",
+    "unseen_family"
+  ],
+  "serf_v3_run": {
+    "design_protocol": {
+      "path": "configs/serf_v3/protocol_serf_v3.json"
+    },
+    "derived_from": {
+      "path": "configs/public_paired_v1/protocol_paired_v1.json"
+    },
+    "dev_split": "planned once as a correctness check (calls and routing abstentions of FedResolve-v3 equal FedResolve on every row); no generation, no selection",
+    "test_split": "planned, generated and scored once; the generation cache of the reported sub-question run and of public_paired_v1 is reused for identical prompts",
+    "reproduction_check": "test rows of FedResolve, S2G-RAG, S2G-RAG+avail, RAGRoute, Centralized, All and Oracle-client for scenarios full (budgets 1-3) and qrel_missing (budget 2) must equal the reported run's plan rows in selected_clients, abstain_routing and evidence_page_uids",
+    "frozen_constants": {
+      "path": "configs/formal_gold_v1_protocol.json",
+      "sha256": "dd22af39e288cf9e686e4c186e5828ed3e18b82ce737acb7da776146382e29f6"
+    },
+    "evidence_rule_exception": "evidence.rule and pages_per_client apply to every method except FedResolve-v3, which selects B pages from the candidate pages of its called clients (protocol_serf_v3.json single_change, amendment_1) and presents them ranked by the evidence score.",
+    "reference_rows": "Oracle-client is planned as a reference row outside the registered comparisons."
+  }
+}

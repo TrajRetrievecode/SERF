@@ -1,0 +1,125 @@
+{
+  "job": "reference",
+  "datasets": [
+    "finrag",
+    "visdom",
+    "evaluation_set"
+  ],
+  "settings": [
+    "c8_seen_query",
+    "c8_unseen_family",
+    "c16_seen_query",
+    "c16_unseen_family"
+  ],
+  "methods": [
+    "Local",
+    "All",
+    "Centralized",
+    "RAGRoute",
+    "UniversalRAG",
+    "CoRe-MMRAG",
+    "S2G-RAG",
+    "S2G-RAG+avail",
+    "FedResolve",
+    "FedResolve-v3",
+    "Oracle-client"
+  ],
+  "variants": [
+    "recorded",
+    "owner_contacts",
+    "plus_availability_test",
+    "online_raw_score",
+    "online_softmax_share",
+    "generator_refusal",
+    "availability_plus_refusal"
+  ],
+  "constants": {
+    "global_temperature": 0.07,
+    "claim_query_weight": 0.75,
+    "full_query_weight": 0.25,
+    "minimum_marginal_gain": 0.05,
+    "missingness_raw_margin": 0.02,
+    "missingness_probability_ratio": 1.15,
+    "certificate_bytes_per_call": 512,
+    "core_mmr_lambda": 0.7,
+    "public_blend_weights": {
+      "finrag": 0.25,
+      "visdom": 0.5
+    },
+    "public_dense_weights": {
+      "finrag": 0.5,
+      "visdom": 0.0
+    },
+    "public_seed": 20260728,
+    "evaluation_seed": 20260730,
+    "bootstrap_seed": 20260805,
+    "bootstrap_resamples": 10000,
+    "confidence_level": 0.95
+  },
+  "constant_sources": [
+    "configs/public_e2e_v1/protocol_v3.json",
+    "configs/formal_gold_v1_protocol.json",
+    "configs/serf_v3/protocol_serf_v3.json",
+    "configs/public_paired_v1/protocol_paired_v1.json",
+    "configs/enumeration/protocol_enumeration_v1.json"
+  ],
+  "seeds": "Public layer seed = public_seed + client count + (0 for finrag, 50000 for visdom); split seed = layer seed + 101. The imported paired online_mask uses public_seed, exactly as the existing planners.",
+  "scenarios": {
+    "owner_contacts": {
+      "scenario": "full",
+      "budgets": [
+        1,
+        2,
+        3
+      ]
+    },
+    "public_missingness": {
+      "budget": 2,
+      "answerable": "unneeded_offline",
+      "unanswerable": "qrel_missing"
+    },
+    "evaluation_missingness": {
+      "budget": 2,
+      "enumerated_scenarios": 176,
+      "paired_scenarios": 80
+    }
+  },
+  "owner_contacts": "Distinct owners of cited pages, mapped with the setting federation and ClientPageView. Compare page lists from both existing public plan sources and verify selected_clients equals owners. Preserve central central call accounting in a separate field. Evaluation owners come from selected candidates' candidate_clients, not centralized queried_clients.",
+  "availability_comparators": "Public gate is S2G-RAG+avail abstain_routing. Verify nonempty base S2G evidence and consistency with FedResolve when it has selected clients. Answerable success = relevant cited unit and no base routing abstention and no gate. Unanswerable success = gate alone; also report base-or-gate abstention as a separate diagnostic. Existing gate-bearing methods retain their existing gate; adding the same gate is idempotent.",
+  "online_rule": {
+    "base": "SERF (FedResolve-v3) at budget 2, retaining the fixed router, stopping rule and evidence selection and replacing only the availability gate. Empty evidence still abstains.",
+    "raw_statistic": "Minimum over sub-questions of the maximum combined score among online finite eligible clients. Client combined scores blend the independent client maxima, exactly as QueryViews and fixed score_views do.",
+    "share_statistic": "Minimum over sub-questions of the probability of that sub-question's highest-scoring online client, using fixed softmax over all finite eligible clients including offline clients.",
+    "decision": "Abstain iff statistic < theta, or there is no selected evidence. Strict comparison at equality.",
+    "raw_grid": {
+      "start": -1.0,
+      "stop": 1.0,
+      "step": 0.005,
+      "inclusive": true
+    },
+    "share_grid": {
+      "start": 0.0,
+      "stop": 1.0,
+      "step": 0.005,
+      "inclusive": true
+    },
+    "grid_source": "Step 0.005 is required by the job brief; endpoints cover cosine blend and probability domains and are fixed without observing scores.",
+    "public_selection": "One theta per dataset and form, maximizing routing balanced accuracy on training queries pooled over four settings. Pool side counts, then average the two side rates. Break exact objective ties by the smallest theta. Apply the chosen theta unchanged to test queries.",
+    "evaluation_reporting": "Every grid point with side counts and balanced accuracy, plus all maximizing grid points and the maximum as an explicitly descriptive upper envelope. No evaluation threshold is selected for application.",
+    "test_recovery": "Read cached test scores and recover SERF-v3 evidence from the recorded called clients when the old gate suppressed delivered pages. Do not reroute or regenerate test queries. Record that this CPU score extraction is necessary because plan rows do not contain the online score statistic."
+  },
+  "evaluation_label_boundary": "Selection and score statistics never receive annotations. Only the metric boundary reads gold: fixed item_metrics computes completeness; fixed oracle_client_adapter is called inside the metric boundary solely to mechanically label scenario answerability. Paired labels are read only inside that boundary, with the fixed scenario-order check. No oracle output enters selection.",
+  "metrics": {
+    "evidence_unit": {
+      "finrag": "page",
+      "visdom": "document"
+    },
+    "balanced": "One half of answerable success rate plus one half of unanswerable abstention rate. Public evidence criterion is a relevant cited unit; evaluation enumeration criterion is complete minimum sufficient called-client set, matching enumeration_summary.json.",
+    "owner_distribution": "Shares with 0, 1, 2, 3 owners; 0 is retained explicitly for empty evidence.",
+    "content_abstention": "System-level answerable evidence success and answer success, and unanswerable system abstention; recorded tables retain source identity. Generator-only methods may also abstain because no client/page was available; these contributions cannot be separated from summary CSVs and are explicitly labeled."
+  },
+  "aggregation": "Per setting counts and rates; arithmetic mean of four setting rates, with summed counts retained as counts rather than denominators of macro means. Evaluation has one fixed setting. Scenario pairs are aligned by uid. Never silently intersect mismatched row universes. Smoke outputs are marked incomplete and must not be used as final estimates.",
+  "statistics": "For public plus-test versus recorded routing and online-rule versus availability, use paired_bootstrap with 10000 resamples over aligned query pairs (the per-query mean of the two sides). Report exact McNemar separately on binary answerable and unanswerable outcomes. Four-setting mean intervals use equal-weight setting bootstrap draws; shared uids use the same resample multiplicities. Evaluation comparisons bootstrap question clusters, separately within each question's answerable and unanswerable scenario contributions, preserving side denominators; do not treat repeated scenarios as independent questions.",
+  "nothing_tuned": "No constant is chosen on a test portion or on the evaluation set. Only online-rule theta is selected, using public training portions by the fixed rule. No generator, GPU, model fitting, cache write or existing artifact modification is permitted.",
+  "failure_policy": "Stop on input hash mismatches, duplicate keys, missing scenario or method rows, inconsistent public source page lists or owners, or frozen-decision reproduction mismatches. Write outputs exclusively under the requested new job output directory."
+}

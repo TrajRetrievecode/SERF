@@ -1,0 +1,24 @@
+{
+  "name": "serf_v3",
+  "motivation_disclosed": "The design follows the analysis of SERF-v1 on the public test portions: Centralized and All see the same online clients, yet Centralized reaches higher evidence recall on FinRAGBench-V because it may cite two pages of one client, while every routing method cites one page per called client. The choice of this change was therefore informed by test-portion results of SERF-v1; this is stated in the paper.",
+  "single_change": "Evidence selection only. SERF-v1 cites the single best page (by the evidence score e) of each called client, ranked and cut to the budget B. SERF-v3 lets a called client contribute any of its candidate pages and cites B pages chosen from the candidate pages of the called clients: the first is the page with the highest evidence score e(x); each further page is the unselected page with the highest blended score z_{j,x} = 0.75 s_sub(j,x) + 0.25 s_full(x) for the sub-question j whose best selected blended score is currently lowest (ties: lowest sub-question index, then highest e(x), then lowest page index). Selection stops when B pages are cited or the called clients have no unselected candidate page.",
+  "unchanged": "Everything else is SERF-v1 (FedResolve-v1): scoring, the sub-question-client distribution, routing (greedy residual coverage over online clients, minimum marginal gain 0.05, budget B), the availability test (margin 0.02, ratio 1.15), abstention when the test fires or no page is selected, the certificate charge of 512 bytes per call, the encoder, the public retriever, the sub-question split, the generator and prompt. The weights 0.75 and 0.25 are the frozen v1 weights. No constant is introduced or tuned. Calls and routing-level abstentions of SERF-v3 are identical to SERF-v1 by construction.",
+  "development_use": "The public development portions are used only to check that the implementation runs and that the calls and routing-level abstentions equal SERF-v1's (a correctness check). There is a single candidate, so no selection is made on any data.",
+  "evaluation_once": {
+    "public": "Test portions of the four settings of FinRAGBench-V and VisDoM, budgets 1, 2, 3, scenarios full and qrel_missing (and unneeded_offline if the paired run is available), methods SERF-v1, SERF-v3, S2G-RAG, S2G-RAG+avail, RAGRoute, Centralized, All; same shared generator; one run.",
+    "evaluation_set": "The 45 questions at budgets 1, 2, 3 with every client online, the 80 paired scenarios and the 176 single-client-offline scenarios at budget 2; one run with the frozen v1 runner's scoring and metrics."
+  },
+  "primary_comparisons": [
+    "public, budget 2: evidence recall of SERF-v3 vs SERF-v1 and vs S2G-RAG, paired bootstrap per setting",
+    "evaluation set, budget 2: strict evidence success of SERF-v3 vs SERF-v1",
+    "evaluation set, budget 3: evidence precision and citation F1 of SERF-v3 vs SERF-v1 (v3 fills the budget, so precision can fall)"
+  ],
+  "expected_direction_not_a_selection_rule": "Higher evidence recall on FinRAGBench-V, where relevant pages of a query sit in one client; no change in calls or abstention; possibly lower evidence precision where v1 cited fewer pages than the budget.",
+  "amendment_1": {
+    "presentation_order": "The B selected pages are passed to the generator ranked by the evidence score e(x), ties by lowest page index, exactly as SERF-v1 presents its pages. Selection order is used only to choose the set; this keeps the generator prompt format unchanged.",
+    "numerics": "The blended page score z is computed in float64 in both implementations.",
+    "scenarios": "On the public datasets the missingness scenarios (qrel_missing, unneeded_offline) run at budget 2 only; budgets 1 and 3 run with every client online. The primary evidence-recall comparison uses the scenario with every client online.",
+    "cost_accounting": "Costs keep the frozen 512-byte certificate per call. SERF-v3 needs page-level scores for the called clients' pages; with server-held page embeddings these are computed at the server, so no extra client payload is charged. This assumption is stated in the paper.",
+    "generator_configuration": "Prompts already in the cache of the reported run keep their recorded outputs; new prompts are generated with tensor parallel size 1 on a single GPU. Greedy decoding may differ across tensor-parallel sizes; this affects answer-level metrics only and is stated in the paper."
+  }
+}

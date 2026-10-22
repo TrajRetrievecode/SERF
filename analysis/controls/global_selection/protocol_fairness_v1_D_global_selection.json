@@ -1,0 +1,189 @@
+{
+  "job": "global_selection",
+  "no_tuning": "No constant is chosen on a test portion or on the evaluation set. No threshold is fitted or swept in this job. All routing, retrieval and selection constants are inherited. The SERF-v3 motivation from SERF-v1 test analysis is described in protocol_serf_v3.json.",
+  "methods": [
+    "Centralized",
+    "FedResolve-v3",
+    "Centralized + test"
+  ],
+  "variants": {
+    "base": "Existing centralized_adapter unchanged, including its public argpartition tie behavior.",
+    "+sel": "Imported pooled coverage selector over every online client with indexed pages, with the original scores and tie rules.",
+    "+sel+test": "Same selection plus the recorded availability decision, checked from scores over every eligible client including offline clients."
+  },
+  "constants": {
+    "global_temperature": 0.07,
+    "full_query_weight": 0.25,
+    "claim_query_weight": 0.75,
+    "minimum_marginal_gain": 0.05,
+    "missingness_raw_margin": 0.02,
+    "missingness_probability_ratio": 1.15
+  },
+  "retriever": {
+    "blend_weight": {
+      "finrag": 0.25,
+      "visdom": 0.5
+    },
+    "dense_weight": {
+      "finrag": 0.5,
+      "visdom": 0.0
+    },
+    "score": "w * cosine(visual) + (1 - w) * [d * cosine(dense) + (1 - d) * cosine(tfidf)]"
+  },
+  "seeds": {
+    "public": 20260728,
+    "evaluation": 20260730,
+    "public_bootstrap": 20260728,
+    "evaluation_bootstrap": 20260730,
+    "generator_unused": 20260805,
+    "federation_rule": "public seed + client count + (0 for finrag, 50000 for visdom)",
+    "split_rule": "federation seed + 101"
+  },
+  "source_sha256": {
+    "run_v3_plan": "6d1ec69eec5d1347e1eb0ac97916e0863476cb8d3ec88435e225f3167c211890",
+    "e2e_slot_adapters": "e8356690207044d40ef95292da5894d76848a3cf494f0339c7d23b7ae727362c",
+    "e2e_v3_adapter": "9b252030db08b223186fb1b3a88eec87e7aac1ee9f19fcfe928b0f56531d6921",
+    "run_formal_gold_v1": "7cf78be0360ab12ab4e4f48a5cf8137f64ce3a9adae051f9d3b3ab09ebe4e1fe",
+    "gold_v3": "f30f5f65db1d37f7cdc90a38d3ed9f2c385703624c22f675f5f467494c4f8eec",
+    "e2e_stats": "a90fc67f14a0cf8a94b897b4362e703565ad6898b8a487c5e2a078c5365f0a44",
+    "fedresolve_core": "b3db8230c126e54a12127c525a143f02f77f2ea2a3bd1192aa42eb9f6201496c",
+    "e2e_retrieval": "82444e5c3ef9f0eb52855105e1830c227b454348df5ed7d88b88ecaaa2442cf3",
+    "e2e_records": "a549282355a0b30cb22258627b45f04128fe041f7ce34399f39e5ad4ff8c2488"
+  },
+  "input_protocol_sha256": {
+    "formal_gold_v1_protocol.json": "dd22af39e288cf9e686e4c186e5828ed3e18b82ce737acb7da776146382e29f6",
+    "protocol_enumeration_v1.json": "c343126b4fc136bf07e899d0e0a765886bf9c64fa570183b6a382ba784687794",
+    "protocol_paired_v1.json": "8e173613981a481881dcd053147ba3744c36a10558272f81d83e8827041bb100",
+    "protocol_serf_v3.json": "7cb9106e81e869e1b232d53a3d443c9b08363dc163b71fa84cb4fe0e6f4b3321",
+    "PROTOCOL_v3.json": "b98f47ccf27bad1d1d12b6cbfc1b5d0d07d9f464d1b8796723444132f17234e1"
+  },
+  "earlier_helpers_sha256": {
+    "attribution/attribution.py": "45be4698a4d635addd387c0070dfc52b423275b8990c07382ef24d865703fdb1",
+    "attribution/check_reproduction.py": "3320c63c852463b99fe772003093a0b21efb7f116636ebdf92a0fe478c384b39",
+    "attribution/run_evaluation.py": "7b65b12e32ee1ccd57bae706480b4ec9bd64c659d0c853b2dc730005b7316c39",
+    "attribution/run_public.py": "88fed29bb5fa53fc593283358144ae9f1eb54524cb855b0f6aec93e630a579a5",
+    "reference/b_common.py": "516e999b23289cbd1af92e85c5ad81c32cc04cbf94fc4f650798f7287d30627c",
+    "reference/evaluation_rows.py": "b32008690584dbf79755c3bb7f7bbd1872ac3c0c526c210e2be62078d783adf7",
+    "reference/public_rows.py": "3acb6bbbc09232b182298ad3dac2c874c5459552f78603eaaa6983745f4fafde",
+    "composite/composite_common.py": "f4a583e5a31267ec55651906fe2d1c3e2daca6fb7c2606ab9d69f91033243ea7",
+    "composite/encode_composites.py": "0a02e57de1ffe76fc2230b0f2e018208e6ac0574dcce1b5372893405278b3578",
+    "composite/prepare_composites.py": "5e4e48a7872c6e5bb35c38955af79bd838fae5e6bdee502c8172856a71e702fa",
+    "composite/run_composites.py": "4543bb8148b2c4b5779fbc11b330b53195cf0a719459067a099c5ccc0682987f"
+  },
+  "settings": [
+    "c8_seen_query",
+    "c8_unseen_family",
+    "c16_seen_query",
+    "c16_unseen_family"
+  ],
+  "datasets": [
+    "finrag",
+    "visdom"
+  ],
+  "public": {
+    "portion": "Test portions only",
+    "budgets": [
+      1,
+      2,
+      3
+    ],
+    "full_variants": [
+      "base",
+      "+sel",
+      "+sel+test"
+    ],
+    "paired_budget": 2,
+    "paired_scenarios": [
+      "unneeded_offline",
+      "qrel_missing"
+    ],
+    "paired_variants": [
+      "+sel",
+      "+sel+test"
+    ],
+    "mask": "Reuse unchanged run_v3_plan.online_mask. Original public plans encode scenario IDs rather than explicit masks; check offline_clients on any row that carries it.",
+    "views": "Import Job B query_views, whose full and slot scoring and QueryViews construction match Job A and run_v3_plan exactly. Import Job A plan_row and metric_fields.",
+    "availability_source": "Job B public_gate over the same recorded public_paired_v1 S2G-RAG+avail, S2G-RAG and FedResolve rows; verify _critical_missing and Job B recorded gate.",
+    "serf_source": "Job A FedResolve +sel full rows cross-checked with original serf_v3 plan rows and registered/v3_cells.csv. Paired rows from Job B cross-checked with original serf_v3 plans."
+  },
+  "composite": {
+    "source": "Read Job C composites.jsonl test definitions and queries cache, with no new encoding.",
+    "budgets": [
+      2,
+      3
+    ],
+    "scenarios": [
+      "full",
+      "part_offline",
+      "other_offline"
+    ],
+    "variants": [
+      "base",
+      "+sel",
+      "+sel+test"
+    ],
+    "availability_source": "Recorded Job C availability_decision and offline_clients; check all recorded methods and policies agree and verify score-only test. Use budget-2 masks and decisions also at budget 3.",
+    "serf_source": "Job C FedResolve-v3 native selection and native policy, verify stored metrics and calls without routing.",
+    "missing_reference_policy": "Job C has offline scenarios only at budget 2. Emit new budget-3 offline global rows, mark the corresponding SERF comparisons unavailable, and never recompute SERF or substitute another budget."
+  },
+  "evaluation": {
+    "questions": 45,
+    "online_budgets": [
+      2,
+      3
+    ],
+    "online_variants": [
+      "base",
+      "+sel"
+    ],
+    "paired_scenarios": 80,
+    "paired_budget": 2,
+    "paired_variants": [
+      "+sel",
+      "+sel+test"
+    ],
+    "runner": "Fixed run_formal_gold_v1.py; cached scores through Job B build_inputs, coverage from imported gold_v3.v3_select. Decisions saved before annotation content is loaded. Only unchanged metric functions consume annotations.",
+    "serf_source": "Job A evaluation FedResolve +sel rows on all-online questions, verify fixed metrics and recorded gold_v3_results.json summaries. Job B fixed SERF-v3 rows on paired scenarios, verify gate and metrics without re-routing.",
+    "availability_source": "Job B evaluation_paired FedResolve-v3 gate; verify imported public _critical_missing on fixed combined scores and probabilities.",
+    "enumeration": "enumerate_single_offline.py has hardcoded METHODS and EXTERNAL, no extra method argument, and writes beside its source. It needs changes to include +sel+test safely."
+  },
+  "metrics": {
+    "evidence_recall": "Public page units for finrag and deduplicated document units for visdom, using unchanged metric_fields.",
+    "complete_evidence_public": "Evidence recall equals one.",
+    "part_recall": "Job C evidence_metrics: fraction of the two parts with at least one relevant unit.",
+    "complete_evidence_composite": "Both parts have at least one relevant unit.",
+    "owner_contacts": "Distinct owners of selected page IDs, using Job B ownership mapping. Zero on public/composite abstention. Evaluation retains evidence IDs on abstention as fixed item_metrics does.",
+    "calls": "SERF client_calls from recorded rows. Global variants retain one central-store call if a proposed page exists, with owner_contacts separately for contact comparisons. The pool client list is not a charged route.",
+    "evaluation": "Unchanged strict_success, evidence_recall, evidence_precision, citation_f1 and bytes from fixed item_metrics. Keep centralized queried_clients equal to all online candidate owners; do not replace them by cited-page owners for strict success.",
+    "balanced_accuracy_public": "Half answerable rate (any relevant cited unit and no routing abstention) plus half unanswerable abstention rate.",
+    "balanced_accuracy_composite": "Half answerable complete-evidence rate without abstention plus half part_offline abstention rate.",
+    "balanced_accuracy_evaluation": "Fixed runner/Job B criterion: complete_client_set and no routing abstention on answerable scenarios, routing abstention on unanswerable scenarios.",
+    "selected_pages": "Length of selected_page_uids. Public/composite evidence IDs are empty on abstention; evaluation retains them to match the fixed metric runner."
+  },
+  "cost": {
+    "certificate_bytes_per_call": 512,
+    "page_text_char_limit": 1800,
+    "ranked_candidate_depth": 10,
+    "accounting": "Original plan request/response/protocol fields and a central-store call for global ranking. Owner contacts reported separately. Evaluation serialized request and response bytes are null; fixed image bytes plus certificates define bytes."
+  },
+  "statistics": {
+    "bootstrap_iterations": 10000,
+    "bootstrap_seeds": {
+      "public": 20260728,
+      "composite": 20260805,
+      "evaluation": 20260730
+    },
+    "confidence": 0.95,
+    "order": "Stable sorted (config,uid,scenario), which is sorted uid within a setting.",
+    "primary": "SERF minus every global variant; public evidence recall and contacts; composite part recall, complete evidence and contacts; evaluation evidence recall. Per setting, with number of four settings whose interval excludes zero.",
+    "mcnemar": "Imported e2e_stats.mcnemar, exact two-sided binomial. Composite complete evidence pooled by (config,uid), evaluation strict success over questions; paired scenarios on each answerability side per setting. Use the identical exact scipy.stats.binom tail at discordance of at least 1024, preventing integer conversion overflow and probability underflow.",
+    "paired_comparisons": "SERF against each global variant; +sel+test against +sel and recorded Centralized + test. Every side and both sign directions reported.",
+    "reporting": "Both signs of each difference and both discordance directions, regardless of outcome. Reverse intervals are exact negations. No multiple-comparison adjustment or outcome-based selection.",
+    "aggregation": "Per-setting query means, then unweighted mean of exactly four settings separately by dataset, budget, scenario, method and variant. Empty or missing settings give null macro means; no silent intersection. Evaluation averages 45 questions, and scenario sides use their own denominators. Repeated public queries across settings make pooled composite inference descriptive."
+  },
+  "execution": "CPU only; no generation. Inputs and source modules remain read-only; outputs use exclusive creation under the control artifact directory. First N test queries per setting in upstream order for --limit.",
+  "registered_result_sha256": {
+    "gold_v3_results.json": "b321609a995e2d4d430c2f9e42775763c563fd7bc8602afc58bfab2e4bbc6fcd",
+    "v3_cells.csv": "8dd4b6443012a3c338c1de8ac9c37f2822b09562f0623db756241a19d820e5ad"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": "fedresolve-formal-gold-v1-protocol-v1",
+  "protocol_name": "SERF evaluation-set protocol",
+  "seed": 20260730,
+  "dataset": {
+    "version": "fedfinrag-resolve-gold-v1.0",
+    "gold_json_sha256": "59e34a1e914abd3b3f1176f2f2c53be5fcc9f1ac4a3d200a2e17ba9d7e6ed237",
+    "tasks_json_sha256": "95a2d0feb8c83a05b08fb15435e2c0cec3a16cef45d08fbdc082e5a61013638a",
+    "task_count": 45,
+    "split": "locked challenge test only",
+    "gold_input_prohibition": [
+      "training",
+      "calibration",
+      "prompt selection",
+      "threshold selection",
+      "hyperparameter tuning"
+    ]
+  },
+  "retrieval": {
+    "model_path": "models/Qwen/Qwen3-VL-Embedding-2B",
+    "max_pixels": 1048576,
+    "image_instruction": "Represent the financial report page for question retrieval.",
+    "query_instruction": "Represent the financial question for report-page retrieval.",
+    "similarity": "cosine",
+    "budget_points": [
+      1,
+      2,
+      3
+    ],
+    "main_budget": 2
+  },
+  "federation": {
+    "client_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "certificate_bytes_per_client_call": 512,
+    "local_assignment": "sha256(canonical_id|seed) modulo 8",
+    "page_transfer": "the selected full candidate-page images of the queried clients when available"
+  },
+  "fedresolve": {
+    "global_temperature": 0.07,
+    "full_query_weight": 0.25,
+    "claim_query_weight": 0.75,
+    "minimum_marginal_gain": 0.05,
+    "missingness_raw_margin": 0.02,
+    "missingness_probability_ratio": 1.15
+  },
+  "core_mmr": {
+    "lambda_relevance": 0.7
+  },
+  "baseline_revisions": {
+    "RAGRoute": "77c163f14855e3b412891fc97339986f0a640d79",
+    "UniversalRAG": "d29ab3acaebfbaebdc7f095457076585bec88065",
+    "CoRe-MMRAG": "301c0099ca99f95b2730f010b1f9271b17e161e5",
+    "S2G-RAG": "5d842a67a0a99a7b545bbad0dc402ceaae0e5eff"
+  },
+  "reporting_boundary": {
+    "external_baseline_label": "unified-protocol adaptation, not official native score",
+    "three_way_stance_claim_allowed": false
+  }
+}
